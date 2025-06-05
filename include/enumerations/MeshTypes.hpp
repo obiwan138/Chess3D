@@ -1,12 +1,12 @@
 /**
  * @author obiwan138
- * @enum ObjectType
+ * @enum MeshTypes
  * @brief Enumeration of the different chess objects
  */
 
  #pragma once
 
- enum class ObjectType {
+ enum class MeshTypes {
      PAWN,
      ROOK,
      KNIGHT,

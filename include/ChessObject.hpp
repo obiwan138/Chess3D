@@ -17,7 +17,7 @@
 // Include the object type
 #include "ViewController.hpp"
 #include "Shader.hpp"
-#include "ObjectType.hpp"
+#include "enumerations/MeshTypes.hpp"
 
 class ChessObject
 {

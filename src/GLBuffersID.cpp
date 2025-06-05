@@ -14,7 +14,7 @@
  * @param vertexStruct : structure containing the vertices, UVs, normals and indices vectors
  */
 
-GLBuffersID::GLBuffersID(VertexData vertexStruct){
+GLBuffersID::GLBuffersID(RawVertexData vertexStruct){
   
     // Generate the vertex array object
     glGenVertexArrays(1, &(this->vao));

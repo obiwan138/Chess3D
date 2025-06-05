@@ -16,9 +16,11 @@
 #include <glm/glm.hpp>            // OpenGL Mathematics
 
 // Headers to include
-#include "ObjectType.hpp"
-#include "Team.hpp"
-#include "VertexData.hpp"
+#include "enumerations/MeshTypes.hpp"
+#include "enumerations/Team.hpp"
+#include "enumerations/TextureTypes.hpp"
+#include "RawVertexData.hpp"
+#include "RawTextureData.hpp"
 #include "GLBuffersID.hpp"
 #include "Shader.hpp"
 #include "ViewController.hpp"
@@ -29,13 +31,11 @@ class SceneManager
     // Member variables
     private :      
 
-        // Textures owned by the SceneManager
-        std::map<ObjectType, GLuint> whiteTexture;         // Stores the textures of the white pieces
-        std::map<ObjectType, GLuint> blackTexture;         // Stores the textures of the black pieces
-        std::map<ObjectType, GLuint> otherTexture;         // Stores the textures of the other objects
-        
         // OpenGL uffers ID owned by the SceneManager
-        std::map<ObjectType, GLBuffersID> objectBuffers;  
+        std::map<MeshTypes, GLBuffersID> objectBuffers;  
+
+        // Textures owned by the SceneManager
+        std::map<TextureTypes, GLuint> textures; 
         
         // Chessboard
         Chessboard chessboard;
@@ -48,8 +48,14 @@ class SceneManager
         // Get the reference to a static instance of the scene manager existing in the function
         static SceneManager& getInstance();
 
-        // Load a texture
-        GLuint loadTexture(const std::string imagePath);
+        // Read texture data from file
+        RawTextureData readTextureData(const std::string& filePath);
+
+        // Send texture data to GPU
+        GLuint sendTextureToGPU(const RawTextureData& textureData);
+
+        // Load a set of texture files using OpenMP
+        bool loadTextures(const std::vector<std::pair<TextureTypes, std::string>>& texturePaths);
 
         // Load the chess board
         bool loadBoard(const std::string filePath);
@@ -64,13 +70,13 @@ class SceneManager
         void setUpBoard();
 
         // Get a vao pointer
-        const GLuint getVaoID(ObjectType type) const;
+        const GLuint getVaoID(MeshTypes type) const;
 
         // Get a texture pointer
-        const GLuint getTextureID(ObjectType type) const;
+        const GLuint getTextureID(MeshTypes type) const;
 
         // Get a texture pointer (override for the team)
-        const GLuint getTextureID(ObjectType type, Team team) const;
+        const GLuint SceneManager::getTextureID(TextureTypes name, Team team) const;
         
         // Destructor
         ~SceneManager();

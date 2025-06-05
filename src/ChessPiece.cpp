@@ -13,7 +13,7 @@
  */
 
 ChessPiece::ChessPiece():ChessObject(){
-    this->type = ObjectType::BOARD;
+    this->type = MeshTypes::BOARD;
     this->team = Team::NONE;
     this->alive = false;
 }
@@ -26,7 +26,7 @@ ChessPiece::ChessPiece():ChessObject(){
  * @param vaoPointerIn Pointer to the associated Vertex Array Object (VAO)
  * @param texturePointerIn Pointer to the associated texture
  */
-ChessPiece::ChessPiece(ObjectType typeIn, Team teamIn, GLuint vaoID, GLuint textureID, unsigned short numIndicesIn):ChessObject(vaoID, textureID, numIndicesIn){
+ChessPiece::ChessPiece(MeshTypes typeIn, Team teamIn, GLuint vaoID, GLuint textureID, unsigned short numIndicesIn):ChessObject(vaoID, textureID, numIndicesIn){
     this->type = typeIn;
     this->team = teamIn;
     this->alive = true;
@@ -58,9 +58,9 @@ ChessPiece& ChessPiece::operator=(const ChessPiece& other){
 //////////////////////////////////////////////////////////////////////////////////////////
 /**
  * @brief Get the type of the piece
- * @return ObjectType of the piece
+ * @return MeshTypes of the piece
  */
-ObjectType ChessPiece::getType() const{
+MeshTypes ChessPiece::getType() const{
     return this->type;
 }
 
@@ -88,7 +88,7 @@ bool ChessPiece::getAlive() const{
  * @brief Set the team of the piece
  * @param teamIn Team of the piece
  */
-void ChessPiece::setType(ObjectType typeIn){
+void ChessPiece::setType(MeshTypes typeIn){
     this->type = typeIn;
 }
 

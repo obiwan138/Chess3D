@@ -1,6 +1,6 @@
 /**
  * @author obiwan138
- * @struct VertexData
+ * @struct RawVertexData
  * @brief This structure stores all the required data corresponding to a 3D object
  */
 
@@ -10,10 +10,9 @@
 #include <vector>
 
 // External libraries
-#include <GL/glew.h>              // OpenGL Library
 #include <glm/glm.hpp>            // OpenGL Mathematics
 
-struct VertexData
+struct RawVertexData
 {
     std::vector<glm::vec3> verticies;       // Vector of Vertices (= 3D points)
     std::vector<glm::vec2> uvs;             // UV coordinates for the texture

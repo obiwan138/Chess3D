@@ -28,7 +28,7 @@ Square::Square(){}
  * @return bool
  */
 bool Square::isOccupied() const{
-    return (this->piece.getType() == ObjectType::BOARD);
+    return (this->piece.getType() == MeshTypes::BOARD);
 }
 
 

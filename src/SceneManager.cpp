@@ -7,6 +7,10 @@
 #include <iostream>	
 #include <fstream>
 #include <stdexcept>
+#include <vector>
+#include <map>
+#include <utility>
+#include <omp.h> 
 
 // Include AssImp
 #include <assimp/Importer.hpp>      // C++ importer interface
@@ -30,7 +34,6 @@ SceneManager::SceneManager(){
     // Load the the vertices data corresponding to the board
     if(!this->loadBoard("../resources/Stone_Chess_Board/Chess_Board.obj")){
         std::cerr << "Error while loading the board. Check the correspond file and path" << std::endl;
-        
     };
 
     // Load the the vertices data corresponding to the pieces
@@ -41,27 +44,30 @@ SceneManager::SceneManager(){
     // Load the textures
     std::cout << "Loading textures ..." << std::endl;
 
-    //Load the texture for the chessboard
-    this->otherTexture.emplace(ObjectType::BOARD, this->loadTexture("../resources/Stone_Chess_Board/Stone_chessboard_diffuse_image.bmp"));
+    // Path of the game textures
+    std::vector<std::pair<TextureTypes, std::string>> texturePaths = 
+    {
+        {TextureTypes::BOARD, "../resources/Stone_Chess_Board/Stone_chessboard_diffuse_image.bmp"},
+        {TextureTypes::WHITE_PAWN, "../resources/Chess_Pieces/white_pawn.bmp"},
+        {TextureTypes::WHITE_ROOK, "../resources/Chess_Pieces/white_rook.bmp"},
+        {TextureTypes::WHITE_KNIGHT, "../resources/Chess_Pieces/white_knight.bmp"},
+        {TextureTypes::WHITE_BISHOP, "../resources/Chess_Pieces/white_bishop.bmp"},
+        {TextureTypes::WHITE_QUEEN, "../resources/Chess_Pieces/white_queen.bmp"},
+        {TextureTypes::WHITE_KING, "../resources/Chess_Pieces/white_king.bmp"},
+        {TextureTypes::BLACK_PAWN, "../resources/Chess_Pieces/black_pawn.bmp"},
+        {TextureTypes::BLACK_ROOK, "../resources/Chess_Pieces/black_rook.bmp"},
+        {TextureTypes::BLACK_KNIGHT, "../resources/Chess_Pieces/black_knight.bmp"},
+        {TextureTypes::BLACK_BISHOP, "../resources/Chess_Pieces/black_bishop.bmp"},
+        {TextureTypes::BLACK_QUEEN, "../resources/Chess_Pieces/black_queen.bmp"},
+        {TextureTypes::BLACK_KING, "../resources/Chess_Pieces/black_king.bmp"}
+    };
 
-    // Load the texture corresponding to the white pieces
-    this->whiteTexture.emplace(ObjectType::PAWN, this->loadTexture("../resources/Chess_Pieces/white_pawn.bmp"));
-    this->whiteTexture.emplace(ObjectType::KNIGHT, this->loadTexture("../resources/Chess_Pieces/white_knight.bmp"));
-    this->whiteTexture.emplace(ObjectType::BISHOP, this->loadTexture("../resources/Chess_Pieces/white_bishop.bmp"));
-    this->whiteTexture.emplace(ObjectType::ROOK, this->loadTexture("../resources/Chess_Pieces/white_rook.bmp"));
-    this->whiteTexture.emplace(ObjectType::QUEEN, this->loadTexture("../resources/Chess_Pieces/white_queen.bmp"));
-    this->whiteTexture.emplace(ObjectType::KING, this->loadTexture("../resources/Chess_Pieces/white_king.bmp"));
-
-    // Load the texture corresponding to the black pieces
-    this->blackTexture.emplace(ObjectType::PAWN, this->loadTexture("../resources/Chess_Pieces/black_pawn.bmp"));
-    this->blackTexture.emplace(ObjectType::KNIGHT, this->loadTexture("../resources/Chess_Pieces/black_knight.bmp"));
-    this->blackTexture.emplace(ObjectType::BISHOP, this->loadTexture("../resources/Chess_Pieces/black_bishop.bmp"));
-    this->blackTexture.emplace(ObjectType::ROOK, this->loadTexture("../resources/Chess_Pieces/black_rook.bmp"));
-    this->blackTexture.emplace(ObjectType::QUEEN, this->loadTexture("../resources/Chess_Pieces/black_queen.bmp"));
-    this->blackTexture.emplace(ObjectType::KING, this->loadTexture("../resources/Chess_Pieces/black_king.bmp"));
+    if(!this->loadTextures(texturePaths)){
+        std::cerr << "Error while loading the textures. Check the correspond file and path" << std::endl;
+    };
 
     // Create chessboard
-    this->chessboard = Chessboard(this->getVaoID(ObjectType::BOARD), this->getTextureID(ObjectType::BOARD), this->objectBuffers.at(ObjectType::BOARD).getNumIndices());
+    this->chessboard = Chessboard(this->getVaoID(MeshTypes::BOARD), this->getTextureID(MeshTypes::BOARD), this->objectBuffers.at(MeshTypes::BOARD).getNumIndices());
 
     // Notify user
     std::cout << "Manager correctly created" << std::endl;
@@ -87,7 +93,7 @@ SceneManager& SceneManager::getInstance(){
 /////////////////////////////////////////////////////////////////////////////////////
 /**
  * @brief Load the chess board
- * @details This function uses the Assimp library to load the VertexData structure of the chess board and create the vertexData attribute of the SceneManager class
+ * @details This function uses the Assimp library to load the RawVertexData structure of the chess board and create the RawVertexData attribute of the SceneManager class
  * @param filePath : the path to the file containing the chess board
  * @return true if the loading is successful, false otherwise
  */
@@ -105,8 +111,8 @@ bool SceneManager::loadBoard(std::string filePath){
 		return false;
 	}
 
-    // Create a new VertexData object
-    VertexData vertexStruct;
+    // Create a new RawVertexData object
+    RawVertexData vertexStruct;
     
     // Get the main (and only) mesh
     const aiMesh* mesh = scene->mMeshes[0];
@@ -158,8 +164,8 @@ bool SceneManager::loadBoard(std::string filePath){
         vertex -= center;
     }
 
-    // Build the openGL buffers from the VertexData structure
-    this->objectBuffers.emplace(ObjectType::BOARD, GLBuffersID(vertexStruct));
+    // Build the openGL buffers from the RawVertexData structure
+    this->objectBuffers.emplace(MeshTypes::BOARD, GLBuffersID(vertexStruct));
     
     // The "scene" pointer will be deleted automatically by "importer"   
     // If we end up here, the loading step is sucessful
@@ -169,8 +175,11 @@ bool SceneManager::loadBoard(std::string filePath){
 /////////////////////////////////////////////////////////////////////////////////////
 /**
  * @brief Load the pieces all at once (from the same file)
- * @details This function uses the Assimp library to load the VertexData structures of the different meshes among the file and create the vertexData attribute of the SceneManager class
+ * @details This function uses the Assimp library to load the RawVertexData structures of the different meshes among the file and create the RawVertexData attribute of the SceneManager class
+ * @details The function uses OpenMP to speed up the loading process by parallelizing the loading of the different meshes
+ * 
  * @param filePath : the path to the file containing the objects
+ * 
  * @return true if the loading is successful, false otherwise
  */
 
@@ -188,23 +197,28 @@ bool SceneManager::loadPieces(std::string filePath){
 	}
 
     // Map the index of the meshes to the object types
-    std::map<ObjectType,int> meshIdx({
-        {ObjectType::PAWN, 5},
-        {ObjectType::KNIGHT, 3},
-        {ObjectType::BISHOP, 1},
-        {ObjectType::ROOK, 11},
-        {ObjectType::QUEEN, 9},
-        {ObjectType::KING, 7}
-    });
+    std::vector<std::pair<MeshTypes,int>> meshIdx = 
+    {
+        {MeshTypes::PAWN, 5},
+        {MeshTypes::KNIGHT, 3},
+        {MeshTypes::BISHOP, 1},
+        {MeshTypes::ROOK, 11},
+        {MeshTypes::QUEEN, 9},
+        {MeshTypes::KING, 7}
+    };
 
-    // Loop over the different meshes in the scene and store their vertices data
-    for(auto it=meshIdx.begin(); it!=meshIdx.end(); it++){
+    // Create a map to store the mesh types and their corresponding indices
+    std::map<MeshTypes, RawVertexData> meshData;
+
+    // Loop over the different meshes in the scene and store their vertices data, speed up the process using OpenMP
+    #pragma omp parallel for
+    for(int i=0; i<meshIdx.size(); i++){
         
-        // Create a new VertexData object
-        VertexData vertexStruct;
+        // Create a new RawVertexData object
+        RawVertexData vertexStruct;
         
         // Get the mesh
-        const aiMesh* mesh = scene->mMeshes[it->second];
+        const aiMesh* mesh = scene->mMeshes[meshIdx[i].second];
         
         // Fill vertices positions
         vertexStruct.verticies.reserve(mesh->mNumVertices);
@@ -253,93 +267,163 @@ bool SceneManager::loadPieces(std::string filePath){
             vertex -= center;
         }
 
-        // Build the openGL buffers from the VertexData structure
-        this->objectBuffers.emplace(it->first, GLBuffersID(vertexStruct));
+        // Save the mesh data in a thread-safe manner
+        #pragma omp critical
+        {
+            // Add the mesh data to the map
+            meshData.emplace(meshIdx[i].first, vertexStruct);
+        }
     }
     // The "scene" pointer will be deleted automatically by "importer"   
     // If we end up here, the loading step is sucessful
+
+    // Now load the mesh data into OpenGL
+    for (const auto& pair : meshData) {
+        
+        // Load the Open GL buffers from the raw mesh data
+        this->objectBuffers.emplace(pair.first, GLBuffersID(pair.second));
+    }
+
+    // If we end up here, the loading step is successful
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @brief Read texture data from file
+ * @details This function reads a BMP texture file and returns the raw texture data.
+ * 
+ * @param filePath : the path to the file containing the texture
+ * 
+ * @return RawTextureData The raw texture data read from the file
+ */
+RawTextureData SceneManager::readTextureData(const std::string& filePath) {
+
+    // Open the file
+    std::ifstream file(filePath, std::ios::binary);
+    
+    // Check if the file is open
+    if (!file) {
+        throw std::runtime_error("Could not open file: " + filePath);
+    }
+
+    // Read header
+    std::vector<char> header(54);
+    if (!file.read(header.data(), header.size())) {
+        throw std::runtime_error("Failed to read BMP header");
+    }
+
+    // Validate BMP format
+    if (header[0] != 'B' || header[1] != 'M') {
+        throw std::runtime_error("Not a valid BMP file");
+    }
+
+    // Validate color depth
+    if (*reinterpret_cast<int*>(&header[0x1E]) != 0 ||
+        *reinterpret_cast<int*>(&header[0x1C]) != 24) {
+        throw std::runtime_error("Not a 24-bit BMP file");
+    }
+
+    // Get image information
+    uint32_t dataPos = *reinterpret_cast<int*>(&header[0x0A]);
+    uint32_t imageSize = *reinterpret_cast<int*>(&header[0x22]);
+    uint32_t width = *reinterpret_cast<int*>(&header[0x12]);
+    uint32_t height = *reinterpret_cast<int*>(&header[0x16]);
+
+    // Handle misformatted files
+    if (imageSize == 0) imageSize = width * height * 3;
+    if (dataPos == 0) dataPos = 54;
+
+    // Read pixel data
+    RawTextureData textureData;
+    textureData.data.resize(imageSize);
+    
+    file.seekg(dataPos, std::ios::beg);
+    
+    if (!file.read(reinterpret_cast<char*>(textureData.data.data()), imageSize)) {
+        throw std::runtime_error("Failed to read image data");
+    }
+
+    // Set texture properties
+    textureData.width = width;
+    textureData.height = height;
+
+    return textureData;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
 /**
- * @brief Load a texture
- * @details This function reads a BMP texture to fill the textureData attribute of the SceneManager class
- * @param filePath : the path to the file containing the texture
+ * @brief Send texture data to GPU
+ * @details This function uploads the raw texture data to the GPU and returns the OpenGL texture ID.
+ * 
+ * @param textureData : the raw texture data to upload
+ * 
+ * @return GLuint The OpenGL texture ID
+ */
+GLuint SceneManager::sendTextureToGPU(const RawTextureData& textureData) {
+
+    // Generate a texture ID
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    
+    // Bind the texture
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    // Upload the texture data to the GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureData.width, textureData.height, 0, GL_BGR, 
+                 GL_UNSIGNED_BYTE, textureData.data.data());
+
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+    // Generate mipmaps
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    return textureID;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Read texture data from file and load it into OpenGL
+ * @details Enhance the processing time by using OpenMP to read multiple textures in parallel.
+ * 
+ * @param texturePaths : the paths to the file containing the textures
+ * 
  * @return true if the loading is successful, false otherwise
  */
+bool SceneManager::loadTextures(const std::vector<std::pair<TextureTypes, std::string>>& texturePaths) {
 
-GLuint SceneManager::loadTexture(const std::string imagePath) {
+    // Texture map to store the loaded textures
+    std::map<TextureTypes, RawTextureData> rawTextures;
 
-    // Try to read the image and fill the textureData attribute
-    try {
-        // Open file
-        std::ifstream file(imagePath, std::ios::binary);
+    // Read the texture files in parallel using OpenMP
+    #pragma omp parallel for
+    for (int i = 0; i < texturePaths.size(); ++i) 
+    {
+        // Read the texture data from the file
+        RawTextureData data = readTextureData(texturePaths[i].second);
 
-        // Check if the file is open
-        if (!file) {
-            throw std::runtime_error("Could not open file: " + imagePath);
+        // Add it to the map in a thread-safe manner
+        #pragma omp critical
+        {
+            rawTextures.emplace(std::make_pair(texturePaths[i].first, data));
         }
-
-        // Read header
-        std::vector<char> header(54);
-        if (!file.read(header.data(), header.size())) {
-            throw std::runtime_error("Failed to read BMP header");
-        }
-
-        // Validate BMP format
-        if (header[0] != 'B' || header[1] != 'M') {
-            throw std::runtime_error("Not a valid BMP file");
-        }
-
-        // Validate color depth
-        if (*reinterpret_cast<int*>(&header[0x1E]) != 0 ||
-            *reinterpret_cast<int*>(&header[0x1C]) != 24) {
-            throw std::runtime_error("Not a 24-bit BMP file");
-        }
-
-        // Get image information
-        uint32_t dataPos = *reinterpret_cast<int*>(&header[0x0A]);
-        uint32_t imageSize = *reinterpret_cast<int*>(&header[0x22]);
-        uint32_t width = *reinterpret_cast<int*>(&header[0x12]);
-        uint32_t height = *reinterpret_cast<int*>(&header[0x16]);
-
-        // Handle misformatted files
-        if (imageSize == 0) imageSize = width * height * 3;
-        if (dataPos == 0) dataPos = 54;
-
-        // Read pixel data
-        std::vector<unsigned char> data(imageSize);
-        file.seekg(dataPos, std::ios::beg);
-        if (!file.read(reinterpret_cast<char*>(data.data()), imageSize)) {
-            throw std::runtime_error("Failed to read image data");
-        }
-
-        // Create OpenGL texture
-        GLuint textureID;
-        glGenTextures(1, &textureID);
-        glBindTexture(GL_TEXTURE_2D, textureID);
-
-        // Upload texture data
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, 
-                    GL_UNSIGNED_BYTE, data.data());
-
-        // Set texture parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
-        // Generate mipmaps
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        return textureID;
-
-    // Catch any error that could happen as described in the try block
-    } catch (const std::exception& e) {
-        std::cerr << "Error loading texture: " << e.what() << std::endl;
-        return 0;
     }
+
+    // For each texture in the rawTextures map, send it to the GPU
+    // Note: This is done sequentially as OpenGL calls are not thread-safe
+    for (const auto& pair : rawTextures) {
+
+        // Send the texture data to the GPU and register the texture ID
+        this->textures.emplace(pair.first, sendTextureToGPU(pair.second));
+    }
+
+    // If we end up here, the loading step is successful
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -347,7 +431,7 @@ GLuint SceneManager::loadTexture(const std::string imagePath) {
  * @brief Set up the board
  * @details This function sets up the board by placing the pieces on the grid
  */
-
+/*
 void SceneManager::setUpBoard(){
 
     // Allow the setup if it is not already done
@@ -355,9 +439,9 @@ void SceneManager::setUpBoard(){
         // Place the pawns
         for(int i=0; i<8; i++){
             // White pawns on row 1 (from 0)
-            this->chessboard.grid[1][i].setPiece(ChessPiece(ObjectType::PAWN, Team::WHITE, this->getVaoID(ObjectType::PAWN), this->getTextureID(ObjectType::PAWN, Team::WHITE), this->objectBuffers.at(ObjectType::PAWN).getNumIndices()));
+            this->chessboard.grid[1][i].setPiece(ChessPiece(MeshTypes::PAWN, Team::WHITE, this->getVaoID(MeshTypes::PAWN), this->getTextureID(TextureTypes::PAWN, Team::WHITE), this->objectBuffers.at(MeshTypes::PAWN).getNumIndices()));
             // Black pawns on row 6 (from 0)
-            this->chessboard.grid[6][i].setPiece(ChessPiece(ObjectType::PAWN, Team::BLACK, this->getVaoID(ObjectType::PAWN), this->getTextureID(ObjectType::PAWN, Team::BLACK), this->objectBuffers.at(ObjectType::PAWN).getNumIndices()));
+            this->chessboard.grid[6][i].setPiece(ChessPiece(MeshTypes::PAWN, Team::BLACK, this->getVaoID(MeshTypes::PAWN), this->getTextureID(MeshTypes::PAWN, Team::BLACK), this->objectBuffers.at(MeshTypes::PAWN).getNumIndices()));
         }
 
         // Now the board is set up
@@ -365,6 +449,7 @@ void SceneManager::setUpBoard(){
     }
     
 }
+    */
 
 /////////////////////////////////////////////////////////////////////////////////////
 /**
@@ -385,29 +470,8 @@ void SceneManager::render(Shader* shaderPtr, ViewController* viewControllerPtr){
  * @return GLuint* the VAO pointer
  */
 
-const GLuint SceneManager::getVaoID(ObjectType type) const{
+const GLuint SceneManager::getVaoID(MeshTypes type) const{
     return this->objectBuffers.at(type).getVaoID();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////
-/**
- * @brief Get a texture pointer
- * @details This function returns a pointer to the texture of one object
- * @param type : the type of the object
- * @return GLuint* the texture pointer
- */
-
-const GLuint SceneManager::getTextureID(ObjectType type) const{
-    switch (type){
-        case ObjectType::BOARD:
-            return static_cast<const GLuint>(this->otherTexture.at(type));
-            break;
-        
-        default:
-            std::cerr << "Error: the object type is not a supported for now. If the type is a chess piece, please mention the team" << std::endl;
-            return 0; 
-            break;
-    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -419,14 +483,73 @@ const GLuint SceneManager::getTextureID(ObjectType type) const{
  * @return GLuint* the texture pointer
  */
 
-const GLuint SceneManager::getTextureID(ObjectType type, Team team) const{
+const GLuint SceneManager::getTextureID(TextureTypes name, Team team = Team::NONE) const{
     switch (team){
         case Team::WHITE:
-            return static_cast<const GLuint>(this->whiteTexture.at(type));
+            switch (name) 
+            {
+                case TextureTypes::WHITE_PAWN:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_PAWN));
+                    break;
+                case TextureTypes::WHITE_KNIGHT:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_KNIGHT));
+                    break;
+                case TextureTypes::WHITE_BISHOP:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_BISHOP));
+                    break;
+                case TextureTypes::WHITE_ROOK:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_ROOK));
+                    break;
+                case TextureTypes::WHITE_QUEEN:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_QUEEN));
+                    break;
+                case TextureTypes::WHITE_KING:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_KING));
+                    break;
+                default:
+                    std::cerr << "Error: the texture type is not supported for now" << std::endl;
+                    return 0;
+                    break;
+            }
             break;
         
         case Team::BLACK:
-            return static_cast<const GLuint>(this->blackTexture.at(type));
+            switch (name) 
+            {
+                case TextureTypes::BLACK_PAWN:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_PAWN));
+                    break;
+                case TextureTypes::WHITE_KNIGHT:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_KNIGHT));
+                    break;
+                case TextureTypes::WHITE_BISHOP:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_BISHOP));
+                    break;
+                case TextureTypes::WHITE_ROOK:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_ROOK));
+                    break;
+                case TextureTypes::WHITE_QUEEN:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_QUEEN));
+                    break;
+                case TextureTypes::WHITE_KING:
+                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_KING));
+                    break;
+                default:
+                    std::cerr << "Error: the texture type is not supported for now" << std::endl;
+                    return 0;
+                    break;
+            }
+            break;
+
+        case Team::NONE:
+            // If the team is not specified, return the texture for the board
+            if(name == TextureTypes::BOARD){
+                return static_cast<const GLuint>(this->textures.at(TextureTypes::BOARD));
+            }
+            else{
+                std::cerr << "Error: the team is not specified. Please specify the team for the piece" << std::endl;
+                return 0;
+            }
             break;
 
         default:
@@ -444,21 +567,15 @@ const GLuint SceneManager::getTextureID(ObjectType type, Team team) const{
 SceneManager::~SceneManager(){
 
     // Delete the textures for white pieces
-    for(auto it=this->whiteTexture.begin(); it!=this->whiteTexture.end(); it++){
+    for(auto it=this->textures.begin(); it!=this->textures.end(); it++){
         glDeleteTextures(1, &(it->second));
         std::cout << "Deleted white texures" << std::endl;
     }
 
     // Delete the textures for black pieces
-    for(auto it=this->blackTexture.begin(); it!=this->blackTexture.end(); it++){
+    for(auto it=this->textures.begin(); it!=this->textures.end(); it++){
         glDeleteTextures(1, &(it->second));
         std::cout << "Deleted black texures"<< std::endl;
-    }
-
-    // Delete the textures for other objetcs
-    for(auto it=this->otherTexture.begin(); it!=this->otherTexture.end(); it++){
-        glDeleteTextures(1, &(it->second));
-        std::cout << "Deleted other texures"<< std::endl;
     }
 
     // Delete the GL buffers for each object (vbos, ebo, vao)

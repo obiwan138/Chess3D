@@ -17,7 +17,7 @@
 #include <glm/glm.hpp>            // OpenGL Mathematics
 
 // Headers to include
-#include "VertexData.hpp"
+#include "RawVertexData.hpp"
 
 class GLBuffersID
 {
@@ -34,8 +34,8 @@ class GLBuffersID
 
     public :
 
-        // Explicit custom constructor (a GLBuffer object can only be created from a VertexData structure)
-        explicit GLBuffersID(VertexData vertexStruct);
+        // Explicit custom constructor (a GLBuffer object can only be created from a RawVertexData structure)
+        explicit GLBuffersID(RawVertexData vertexStruct);
 
         // Get a pointer to the VAO
         const GLuint getVaoID() const;
