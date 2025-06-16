@@ -77,7 +77,7 @@ void Chessboard::render(Shader* shaderPtr, ViewController* viewControllerPtr){
     // Render the chessboard
     this->ChessObject::render(shaderPtr, viewControllerPtr);
 
-    /* 
+    
     // If the board is set up, render the pieces
     if(this->setUpState){
 
@@ -94,7 +94,6 @@ void Chessboard::render(Shader* shaderPtr, ViewController* viewControllerPtr){
             }
         }
     }
-        */
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

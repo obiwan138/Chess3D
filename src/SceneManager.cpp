@@ -67,7 +67,22 @@ SceneManager::SceneManager(){
     };
 
     // Create chessboard
-    this->chessboard = Chessboard(this->getVaoID(MeshTypes::BOARD), this->getTextureID(MeshTypes::BOARD), this->objectBuffers.at(MeshTypes::BOARD).getNumIndices());
+    this->chessboard = Chessboard(this->getVaoID(MeshTypes::BOARD), this->getTextureID(TextureTypes::BOARD), this->objectBuffers.at(MeshTypes::BOARD).getNumIndices());
+
+    // Create the set of chess pieces
+    for(const auto& pair : texturePaths)
+    {
+        if(pair.first != TextureTypes::BOARD && pair.first != TextureTypes::NONE)
+        {   
+            // Retrieve the associated TextureType and MeshType
+            TextureTypes textureType = pair.first;
+            MeshTypes meshType = this->getMeshType(pair.first);
+
+            // Create the ChessObject
+            this->chessPieces.insert(std::make_pair(textureType, ChessPiece(meshType, this->getTeam(textureType), this->getVaoID(meshType), getTextureID(textureType), this->objectBuffers.at(meshType).getNumIndices())));
+        }
+        
+    }
 
     // Notify user
     std::cout << "Manager correctly created" << std::endl;
@@ -98,7 +113,7 @@ SceneManager& SceneManager::getInstance(){
  * @return true if the loading is successful, false otherwise
  */
 
-bool SceneManager::loadBoard(std::string filePath){
+bool SceneManager::loadBoard(const std::string& filePath){
     
     // Load the file using AssImp
 	Assimp::Importer importer;
@@ -183,7 +198,7 @@ bool SceneManager::loadBoard(std::string filePath){
  * @return true if the loading is successful, false otherwise
  */
 
-bool SceneManager::loadPieces(std::string filePath){
+bool SceneManager::loadPieces(const std::string& filePath){
     
     // Load the file using AssImp
 	Assimp::Importer importer;
@@ -431,7 +446,7 @@ bool SceneManager::loadTextures(const std::vector<std::pair<TextureTypes, std::s
  * @brief Set up the board
  * @details This function sets up the board by placing the pieces on the grid
  */
-/*
+
 void SceneManager::setUpBoard(){
 
     // Allow the setup if it is not already done
@@ -439,9 +454,9 @@ void SceneManager::setUpBoard(){
         // Place the pawns
         for(int i=0; i<8; i++){
             // White pawns on row 1 (from 0)
-            this->chessboard.grid[1][i].setPiece(ChessPiece(MeshTypes::PAWN, Team::WHITE, this->getVaoID(MeshTypes::PAWN), this->getTextureID(TextureTypes::PAWN, Team::WHITE), this->objectBuffers.at(MeshTypes::PAWN).getNumIndices()));
+            this->chessboard.grid[1][i].setPiece(&(this->chessPieces[TextureTypes::WHITE_PAWN]));
             // Black pawns on row 6 (from 0)
-            this->chessboard.grid[6][i].setPiece(ChessPiece(MeshTypes::PAWN, Team::BLACK, this->getVaoID(MeshTypes::PAWN), this->getTextureID(MeshTypes::PAWN, Team::BLACK), this->objectBuffers.at(MeshTypes::PAWN).getNumIndices()));
+            this->chessboard.grid[6][i].setPiece(&(this->chessPieces[TextureTypes::BLACK_PAWN]));
         }
 
         // Now the board is set up
@@ -449,7 +464,7 @@ void SceneManager::setUpBoard(){
     }
     
 }
-    */
+
 
 /////////////////////////////////////////////////////////////////////////////////////
 /**
@@ -470,7 +485,7 @@ void SceneManager::render(Shader* shaderPtr, ViewController* viewControllerPtr){
  * @return GLuint* the VAO pointer
  */
 
-const GLuint SceneManager::getVaoID(MeshTypes type) const{
+const GLuint SceneManager::getVaoID(const MeshTypes& type) const{
     return this->objectBuffers.at(type).getVaoID();
 }
 
@@ -483,81 +498,126 @@ const GLuint SceneManager::getVaoID(MeshTypes type) const{
  * @return GLuint* the texture pointer
  */
 
-const GLuint SceneManager::getTextureID(TextureTypes name, Team team = Team::NONE) const{
-    switch (team){
-        case Team::WHITE:
-            switch (name) 
-            {
-                case TextureTypes::WHITE_PAWN:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_PAWN));
-                    break;
-                case TextureTypes::WHITE_KNIGHT:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_KNIGHT));
-                    break;
-                case TextureTypes::WHITE_BISHOP:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_BISHOP));
-                    break;
-                case TextureTypes::WHITE_ROOK:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_ROOK));
-                    break;
-                case TextureTypes::WHITE_QUEEN:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_QUEEN));
-                    break;
-                case TextureTypes::WHITE_KING:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_KING));
-                    break;
-                default:
-                    std::cerr << "Error: the texture type is not supported for now" << std::endl;
-                    return 0;
-                    break;
-            }
-            break;
-        
-        case Team::BLACK:
-            switch (name) 
-            {
-                case TextureTypes::BLACK_PAWN:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_PAWN));
-                    break;
-                case TextureTypes::WHITE_KNIGHT:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_KNIGHT));
-                    break;
-                case TextureTypes::WHITE_BISHOP:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_BISHOP));
-                    break;
-                case TextureTypes::WHITE_ROOK:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_ROOK));
-                    break;
-                case TextureTypes::WHITE_QUEEN:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_QUEEN));
-                    break;
-                case TextureTypes::WHITE_KING:
-                    return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_KING));
-                    break;
-                default:
-                    std::cerr << "Error: the texture type is not supported for now" << std::endl;
-                    return 0;
-                    break;
-            }
-            break;
+const GLuint SceneManager::getTextureID(const TextureTypes& name) const{
 
-        case Team::NONE:
-            // If the team is not specified, return the texture for the board
-            if(name == TextureTypes::BOARD){
-                return static_cast<const GLuint>(this->textures.at(TextureTypes::BOARD));
-            }
-            else{
-                std::cerr << "Error: the team is not specified. Please specify the team for the piece" << std::endl;
-                return 0;
-            }
+    // Return the appropriate texture ID based on the texture type
+    switch (name) 
+    {
+        case TextureTypes::BOARD:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::BOARD));
             break;
-
+        case TextureTypes::WHITE_PAWN:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_PAWN));
+            break;
+        case TextureTypes::WHITE_KNIGHT:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_KNIGHT));
+            break;
+        case TextureTypes::WHITE_BISHOP:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_BISHOP));
+            break;
+        case TextureTypes::WHITE_ROOK:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_ROOK));
+            break;
+        case TextureTypes::WHITE_QUEEN:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_QUEEN));
+            break;
+        case TextureTypes::WHITE_KING:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::WHITE_KING));
+            break;
+        case TextureTypes::BLACK_PAWN:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::BLACK_PAWN));
+            break;
+        case TextureTypes::BLACK_KNIGHT:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::BLACK_KNIGHT));
+            break;
+        case TextureTypes::BLACK_BISHOP:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::BLACK_BISHOP));
+            break;
+        case TextureTypes::BLACK_ROOK:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::BLACK_ROOK));
+            break;
+        case TextureTypes::BLACK_QUEEN:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::BLACK_QUEEN));
+            break;
+        case TextureTypes::BLACK_KING:
+            return static_cast<const GLuint>(this->textures.at(TextureTypes::BLACK_KING));
+            break;
         default:
-            std::cerr << "Error: the team is not a supported for now" << std::endl;
+            std::cerr << "Error: the texture type is not supported for now" << std::endl;
             return 0;
             break;
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////
+
+const MeshTypes SceneManager::getMeshType(const TextureTypes& texture) const
+{
+    switch (texture) 
+    {
+        case TextureTypes::BOARD:
+            return MeshTypes::BOARD;
+
+        case TextureTypes::WHITE_PAWN:
+        case TextureTypes::BLACK_PAWN:
+            return MeshTypes::PAWN;
+
+        case TextureTypes::WHITE_KNIGHT:
+        case TextureTypes::BLACK_KNIGHT:
+            return MeshTypes::KNIGHT;
+
+        case TextureTypes::WHITE_BISHOP:
+        case TextureTypes::BLACK_BISHOP:
+            return MeshTypes::BISHOP;
+
+        case TextureTypes::WHITE_ROOK:
+        case TextureTypes::BLACK_ROOK:
+            return MeshTypes::ROOK;
+
+        case TextureTypes::WHITE_QUEEN:
+        case TextureTypes::BLACK_QUEEN:
+            return MeshTypes::QUEEN;
+
+        case TextureTypes::WHITE_KING:
+        case TextureTypes::BLACK_KING:
+            return MeshTypes::KING;
+
+        default:
+            std::cerr << "Error: Unsupported TextureType in mapTextureToMesh()" << std::endl;
+            return MeshTypes::NONE; // Optional: define MeshTypes::NONE or INVALID
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////
+
+const Team SceneManager::getTeam(const TextureTypes& texture) const
+{
+    switch (texture) 
+    {
+        case TextureTypes::WHITE_PAWN:
+        case TextureTypes::WHITE_KNIGHT:
+        case TextureTypes::WHITE_BISHOP:
+        case TextureTypes::WHITE_ROOK:
+        case TextureTypes::WHITE_QUEEN:
+        case TextureTypes::WHITE_KING:
+            return Team::WHITE;
+
+        case TextureTypes::BLACK_PAWN:
+        case TextureTypes::BLACK_KNIGHT:
+        case TextureTypes::BLACK_BISHOP:
+        case TextureTypes::BLACK_ROOK:
+        case TextureTypes::BLACK_QUEEN:
+        case TextureTypes::BLACK_KING:
+            return Team::BLACK;
+
+        case TextureTypes::BOARD:
+        default:
+            return Team::NONE;
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Destructor

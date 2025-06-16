@@ -11,7 +11,8 @@
  * @brief Default constructor
  */
 
-Square::Square(){}
+Square::Square():notation(""), position(glm::vec3(0,0,0)), piecePtr(nullptr){}
+
 
 ///////////////////////////////////////////////////////////////////
 /**
@@ -20,7 +21,8 @@ Square::Square(){}
  * @param positionIn A 3D vector locating the center of the square
  */
 
- Square::Square(const std::string notationIn, const glm::vec3 positionIn):notation(notationIn), position(positionIn){}
+ Square::Square(const std::string& notationIn, const glm::vec3& positionIn)
+                :notation(notationIn), position(positionIn), piecePtr(nullptr){}
 
 ///////////////////////////////////////////////////////////////////
 /**
@@ -28,7 +30,7 @@ Square::Square(){}
  * @return bool
  */
 bool Square::isOccupied() const{
-    return (this->piece.getType() == MeshTypes::BOARD);
+    return !(this->piecePtr == nullptr);
 }
 
 
@@ -39,7 +41,7 @@ bool Square::isOccupied() const{
 
 void Square::renderPiece(Shader* shaderPtr, ViewController* viewControllerPtr){
     if(this->isOccupied()){
-        this->piece.render(shaderPtr, viewControllerPtr);
+        this->piecePtr->render(shaderPtr, viewControllerPtr);
     }
 }
 
@@ -67,7 +69,7 @@ glm::vec3 Square::getPosition() const {
  * @param notationIn the string we want as a notation
  */
 
-void Square::setNotation(const std::string notationIn){
+void Square::setNotation(const std::string& notationIn){
     this->notation = notationIn;
 }
 
@@ -77,7 +79,7 @@ void Square::setNotation(const std::string notationIn){
  * @param positionIn the vector we want to locate at
  */
 
- void Square::setPosition(const glm::vec3 positionIn){
+ void Square::setPosition(const glm::vec3& positionIn){
     this->position = positionIn;
 }
 
@@ -87,6 +89,7 @@ void Square::setNotation(const std::string notationIn){
  * @param piece The ChessPiece to set
  */
 
- void Square::setPiece(const ChessPiece& pieceIn){
-    this->piece = pieceIn;
+ void Square::setPiece(ChessPiece* pieceInPtr)
+ {
+    this->piecePtr = pieceInPtr;
  }

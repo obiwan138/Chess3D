@@ -21,7 +21,7 @@ class Square{
 
         std::string notation;               // Notation of this square
         glm::vec3 position;                 // Position of the square
-        ChessPiece piece;                   // Piece at this square (eventually none)
+        ChessPiece* piecePtr;               // Piece at this square (eventually none)
 
     public : 
 
@@ -29,7 +29,7 @@ class Square{
         Square();
 
         // Custom constructor to init all the squares of the board
-        Square(const std::string notationIn, const glm::vec3 position);
+        Square(const std::string& notationIn, const glm::vec3& position);
 
         // Get if the square is occupied by a piece
         bool isOccupied() const;
@@ -44,11 +44,11 @@ class Square{
         glm::vec3 getPosition() const;       
         
         // Set the notation
-        void setNotation(const std::string notationIn);
+        void setNotation(const std::string& notationIn);
 
         // Set position
-        void setPosition(const glm::vec3);
+        void setPosition(const glm::vec3&);
 
         // Set piece
-        void setPiece(const ChessPiece& pieceIn);
+        void setPiece(ChessPiece* pieceInPtr);
 };

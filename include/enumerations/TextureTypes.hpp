@@ -19,5 +19,6 @@
     BLACK_BISHOP,
     BLACK_QUEEN,
     BLACK_KING,
-    BOARD
+    BOARD,
+    NONE
  };

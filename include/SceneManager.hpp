@@ -40,6 +40,9 @@ class SceneManager
         // Chessboard
         Chessboard chessboard;
 
+        // Chess pieces
+        std::map<TextureTypes, ChessPiece> chessPieces;
+
         // Private constructor (singleton)
         SceneManager();
 
@@ -58,10 +61,10 @@ class SceneManager
         bool loadTextures(const std::vector<std::pair<TextureTypes, std::string>>& texturePaths);
 
         // Load the chess board
-        bool loadBoard(const std::string filePath);
+        bool loadBoard(const std::string& filePath);
 
         // Load the objects all at once (from the same file)
-        bool loadPieces(const std::string filePath);
+        bool loadPieces(const std::string& filePath);
 
         // Render the scene
         void render(Shader* shaderPtr, ViewController* viewControllerPtr);
@@ -69,14 +72,17 @@ class SceneManager
         // Set up the board
         void setUpBoard();
 
-        // Get a vao pointer
-        const GLuint getVaoID(MeshTypes type) const;
-
         // Get a texture pointer
-        const GLuint getTextureID(MeshTypes type) const;
+        const MeshTypes getMeshType(const TextureTypes& texture) const;
+
+        // Get team
+        const Team getTeam(const TextureTypes& texture) const;
+
+        // Get a vao pointer
+        const GLuint getVaoID(const MeshTypes& type) const;
 
         // Get a texture pointer (override for the team)
-        const GLuint SceneManager::getTextureID(TextureTypes name, Team team) const;
+        const GLuint getTextureID(const TextureTypes& name) const;
         
         // Destructor
         ~SceneManager();

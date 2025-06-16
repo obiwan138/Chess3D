@@ -13,5 +13,6 @@
      BISHOP,
      QUEEN,
      KING,
-     BOARD
+     BOARD,
+     NONE
  };
